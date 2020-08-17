@@ -1,3 +1,4 @@
+
 /*
 * Created by: Vasanth
 * Created Date: 06/12/2017
@@ -23,6 +24,7 @@
         this.JAPANESESEARCH = ["TitleJapanese", "OverviewJapanese", "ReportTypeOtherJapanese", "AuthorNameJapanese", "CommentJapanese",
 							"AgreementMatterJapanese", "ObjectiveJapanese", "AgendaJapanese"];
 		this.IGNORESEARCH = ["Function1stDigit","Part1stDigit","ENGFamily","MeetingType","ObjectiveAgreement","ObjectiveAgreementMatter","Comment","CadicsCategoryName","FileType"];
+	
 		this.MODIFYQUERYPARAM = ["AgreementMatterEnglish1","AgreementMatterJapanese1","ObjectiveJapanese1","ObjectiveEnglish1"]
 		//this.MODIFYQUERYCOMMENTPARAM = ["NissanSubmittedDocument1", "ContactPartnerSubmittedDocument1", "MeetingDetail1"]
 		this.PEOPLEPICKER = ["NMLPersonName","AuthorNameID"]
@@ -162,6 +164,11 @@
 
                     /* Set the query time out 0-60000 */
                     keywordQuery.set_timeout(60000);
+				   // keywordQuery.set_timeout(100000);
+				   
+				   var today = new Date();
+					var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+				   console.log(time);
 
                     /* Creating Search Executor Object */
                     var searchExecutor = new Microsoft.SharePoint.Client.Search.Query.SearchExecutor(context);
@@ -178,6 +185,7 @@
                         if (results.m_value.ResultTables.length > 0) {
                             for (var rowCount = 0; rowCount < results.m_value.ResultTables[0].RowCount; rowCount++) {
                                 var row = [];
+								var filedetails="";
                                 var searchRow = results.m_value.ResultTables[0].ResultRows[rowCount];
                                 /* traverses through each managed property */
                                 for (var propertyCount = 0; propertyCount < EDMS.creatingList.managedProperty.length; propertyCount++) {
@@ -252,6 +260,269 @@
 									linkSite = linkSite + '/_layouts/15/DocSetHome.aspx?id=' + managePropertyValue.split(location.host)[1];
 									managePropertyValue = linkSite;
                                     }
+									
+									/*********** Fetch Attachment Details********/
+									/******By RNTBCI******/
+									
+										var docurl = searchRow.OriginalPath+'/';
+									//console.log("docurl: " + docurl);
+									
+									var splittedStr = docurl.split('/');
+									
+								
+									var siteid = splittedStr[splittedStr.length-4];
+									var actSplit = splittedStr[splittedStr.length-3];
+									var _mid = splittedStr[splittedStr.length-2];
+									
+									var _site = 'http://'+document.location.hostname +'/'+ 'rnd'+'/'+ siteid ;
+									
+																	
+									if (EDMS.creatingList.managedProperty[propertyCount] == 'FileName') {
+									
+									
+									var fileattached ="";
+									var attachedfile = "";
+									var filetypeEd ="";
+									var filetype ="";
+																						
+														
+									var documentseturl ="";
+									
+									
+									if(_mid.indexOf('_') !== -1)
+									{
+									var version = _mid.split('_')[1];
+									var _midver = _mid.split('_')[0];
+									
+									console.log("if");
+									
+									 documentseturl =  docurl  ;
+									 //console.log(documentseturl);
+									
+						var url = _site +'/_api/web/Lists/GetByTitle(\''+actSplit +'\')/Items?$select=ManagementID,EncodedAbsUrl,FileTypeED&$filter=ManagementID eq '+"'" +_midver+ "'"+' and EDMSVersion eq '+"'" +version+ "'" + 'and EDMSStatus eq '+"'Issued'" ;
+																	
+									}
+									else
+									{
+									//documentseturl = _spPageContextInfo.siteAbsoluteUrl + relativeUrl +'/' ;
+									documentseturl = docurl;
+									//console.log("else");
+									 //console.log(documentseturl);
+						//var url = _site +'/_api/web/Lists/GetByTitle(\''+actSplit +'\')/Items?$select=ManagementID,EncodedAbsUrl,FileTypeED,EDMSStatus&$top=5000&$filter=EDMSStatus eq '+"'Issued'"+'and ManagementID eq '+"'" +_mid + "'";
+								  
+						var url = _site +'/_api/web/Lists/GetByTitle(\''+actSplit +'\')/Items?$select=ManagementID,EncodedAbsUrl,FileTypeED&$filter=ManagementID eq '+"'" +_mid+ "'" + 'and EDMSStatus eq '+"'Issued'" ;		  
+								  // console.log(url);
+							
+									}
+
+							$.ajax({
+										url: url,
+										method: 'GET',
+										async: false,
+										headers: {
+											"Accept": "application/json; odata=verbose",
+											"content-type": "application/json; odata=verbose",
+											"X-RequestDigest": $("#__REQUESTDIGEST").val()
+										}
+									}).done(function (data) {
+									 //   var siteAbsoluteURL = _spPageContextInfo.siteAbsoluteUrl;
+										$.each(data.d.results, function (i,result) {
+										  /* fileURLS += siteAbsoluteURL + this.ServerRelativeUrl + ";";
+											
+											console.log(fileURLS);*/
+											 attachedfile = result.EncodedAbsUrl ;
+											 var filetypeEd = result.FileTypeED ;
+											 
+											 
+											// var documentsetversionurl = documentseturl + "_";
+											//console.log(documentseturl);
+											
+											if(attachedfile.indexOf(documentseturl) !== -1)
+											{
+											 if(attachedfile != documentseturl)
+											{
+											var filename = attachedfile.substring(attachedfile.lastIndexOf('/')+1) ;
+											//fileattached += filename + ";" ;
+											fileattached = filename ;
+											
+											filetype = filetypeEd ;
+											
+											managePropertyValue += filetype +':'+ fileattached +';';
+											//console.log(managePropertyValue);
+											}
+																					
+											else
+											{											
+											managePropertyValue = "";											
+											}
+											}
+											else
+											{
+											managePropertyValue = "";	
+											}
+											
+											
+										
+										});
+									}).error(function (e) {
+										console.log('error', e);
+									});
+                                    }
+									
+									/************ Fetch FileNameMMM By RNTBCI ***************/
+									
+									if (EDMS.creatingList.managedProperty[propertyCount] == 'FileNameMMM') {
+																	
+									var fileattached ="";
+									var attachedfile = "";
+									var docclass ="";
+									var filetype ="";
+																	
+									var documentseturl ="";
+								
+									documentseturl = docurl;
+									
+									var url = _site +'/_api/web/Lists/GetByTitle(\''+actSplit +'\')/Items?$select=ManagementID,EncodedAbsUrl,Documentclassification,EDMSStatus&$filter=ManagementID eq '+"'" +_mid+ "'" + 'and EDMSStatus eq '+"'Issued'" ;
+								 
+							
+
+							$.ajax({
+										url: url,
+										method: 'GET',
+										async: false,
+										headers: {
+											"Accept": "application/json; odata=verbose",
+											"content-type": "application/json; odata=verbose"
+											//"X-RequestDigest": document.getElementById("__REQUESTDIGEST").value
+										}
+									}).done(function (data) {
+									 //   var siteAbsoluteURL = _spPageContextInfo.siteAbsoluteUrl;
+										$.each(data.d.results, function (i,result) {
+										  /* fileURLS += siteAbsoluteURL + this.ServerRelativeUrl + ";";
+											
+											console.log(fileURLS);*/
+											 attachedfile = result.EncodedAbsUrl ;
+											 var docclass = result.Documentclassification ;
+											 
+											 
+											// var documentsetversionurl = documentseturl + "_";
+											//console.log(documentseturl);
+											
+											if(attachedfile.indexOf(documentseturl) !== -1)
+											{
+											 if(attachedfile != documentseturl)
+											{
+											var filename = attachedfile.substring(attachedfile.lastIndexOf('/')+1) ;
+											//fileattached += filename + ";" ;
+											fileattached = filename ;
+											
+											
+											filetype = docclass ;
+											// console.log(filetype);
+											// managePropertyValue = filetype;
+											
+											//console.log(fileattached);
+											managePropertyValue += filetype +'：'+ fileattached +';';
+											//console.log(managePropertyValue);
+											}
+																					
+											else
+											{											
+											managePropertyValue = "";											
+											}
+											}
+											else
+											{
+											managePropertyValue = "";	
+											}
+											
+											
+										
+										});
+									}).error(function (e) {
+										console.log('error', e);
+									});
+                                    }
+									
+									
+									/******************** File Type ECH ****************************/
+									
+									
+									if (EDMS.creatingList.managedProperty[propertyCount] == 'FileNameECH') {
+																	
+									var fileattached ="";
+									var attachedfile = "";
+									var docclass ="";
+									var filetype ="";
+																	
+									var documentseturl ="";
+								
+									documentseturl = docurl;
+									
+									var url = _site +'/_api/web/Lists/GetByTitle(\''+actSplit +'\')/Items?$select=ContactID,EDMSStatus,EncodedAbsUrl,FileTypeECH&$filter=ContactID eq '+"'" +_mid+ "'" + 'and EDMSStatus eq '+"'Issued'" ;
+								 
+							
+									
+
+							$.ajax({
+										url: url,
+										method: 'GET',
+										async: false,
+										headers: {
+											"Accept": "application/json; odata=verbose",
+											"content-type": "application/json; odata=verbose"
+											//"X-RequestDigest": document.getElementById("__REQUESTDIGEST").value
+										}
+									}).done(function (data) {
+									 //   var siteAbsoluteURL = _spPageContextInfo.siteAbsoluteUrl;
+										$.each(data.d.results, function (i,result) {
+										  /* fileURLS += siteAbsoluteURL + this.ServerRelativeUrl + ";";
+											
+											console.log(fileURLS);*/
+											 attachedfile = result.EncodedAbsUrl ;
+											 var docclass = result.FileTypeECH ;
+											 
+											 
+											// var documentsetversionurl = documentseturl + "_";
+											//console.log(documentseturl);
+											
+											if(attachedfile.indexOf(documentseturl) !== -1)
+											{
+											 if(attachedfile != documentseturl)
+											{
+											var filename = attachedfile.substring(attachedfile.lastIndexOf('/')+1) ;
+											//fileattached += filename + ";" ;
+											fileattached = filename ;
+											
+											
+											filetype = docclass ;
+											// console.log(filetype);
+											// managePropertyValue = filetype;
+											
+											//console.log(fileattached);
+											managePropertyValue += filetype +'：'+ fileattached +';';
+											//console.log(managePropertyValue);
+											}
+																					
+											else
+											{											
+											managePropertyValue = "";											
+											}
+											}
+											else
+											{
+											managePropertyValue = "";	
+											}
+											
+											
+										
+										});
+									}).error(function (e) {
+										console.log('error', e);
+									});
+                                    }
+									
+									
                                     /* managed property value are inserted to a temporary array */
                                     row.push(managePropertyValue);
                                 }
@@ -334,6 +605,7 @@
 
                 /* retrieving specific attributes and their managed property for each Type of Standard values for the search query */
                 _self.createSpecificAttributes();
+				
 
                 /* removes duplicate values on headerRow array */
                 EDMS.creatingList.headerRow = EDMS.creatingList.headerRow.removeDuplicates();
@@ -616,7 +888,7 @@ return false;
             }
         },
 
-        getFilesinDocumentsSet: function (documentSetUrl) {
+    /* getFilesinDocumentsSet: function (documentSetUrl) {
             var fileURLS = ""
             var relativeUrl = documentSetUrl.split(location.host)[1];
             var splittedStr = relativeUrl.split('/');
@@ -643,7 +915,8 @@ return false;
                 console.log('error', e);
             });
             return fileURLS;
-        },
+        },*/
+
 
         /*
         * Created by:Vasanth
@@ -712,4 +985,6 @@ return false;
 
 
 })();
+
+
 
